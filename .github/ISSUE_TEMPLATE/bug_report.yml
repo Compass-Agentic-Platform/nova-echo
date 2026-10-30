@@ -1,0 +1,68 @@
+name: Bug report
+description: Report a problem with Nova Echo
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. The more detail you provide, the faster we can help.
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      description: Where are you running Nova Echo?
+      options:
+        - Windows 10
+        - Windows 11
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Which version of Nova Echo are you using?
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the bug and what you expected to happen instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps to reproduce the issue.
+      placeholder: |
+        1. Connect Compass in Settings
+        2. Submit a task or start a voice conversation
+        3. Describe the action, approval, or error you saw
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the app does this affect?
+      options:
+        - Chat / task execution
+        - Voice conversation / microphone / playback
+        - Screen sharing / screenshots
+        - Mouse / keyboard / computer control
+        - Applications / windows / allowed folders
+        - Approvals / remembered permissions
+        - Compass connection / models / tools
+        - Settings / credentials
+        - Installer / updater
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and additional context
+      description: Include relevant errors or redacted screenshots. Do not post API keys, private screen content, voice content, or confidential documents.

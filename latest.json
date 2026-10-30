@@ -1,0 +1,9 @@
+{
+  "version": "0.1.0",
+  "releaseDate": "",
+  "releaseNotes": "Nova Echo is a Compass desktop computer assistant with typed chat, voice conversations, optional screen sharing, permission-controlled desktop actions, and Compass tools. Windows x64 is the current release target; macOS publishing is deferred. Release downloads and checksums will be populated from actual published Echo assets.",
+  "releaseNotesUrl": "",
+  "mandatory": false,
+  "prerelease": false,
+  "platforms": {}
+}

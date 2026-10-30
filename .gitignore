@@ -1,0 +1,5 @@
+.compass/*
+.nova/*
+source-app/
+nova-echo/
+node_modules/
