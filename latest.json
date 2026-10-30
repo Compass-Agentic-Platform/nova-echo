@@ -1,9 +1,16 @@
 {
   "version": "0.1.0",
-  "releaseDate": "",
-  "releaseNotes": "Nova Echo is a Compass desktop computer assistant with typed chat, voice conversations, optional screen sharing, permission-controlled desktop actions, and Compass tools. Windows x64 is the current release target; macOS publishing is deferred. Release downloads and checksums will be populated from actual published Echo assets.",
-  "releaseNotesUrl": "",
+  "releaseDate": "2026-10-30",
+  "releaseNotes": "The first release of Nova Echo brings Compass chat, voice conversations, and permission-controlled computer actions to your Windows desktop.\r\n\r\n## ✨ Features\r\n\r\n### Chat and Voice\r\n- Describe tasks in plain language and follow up in the same conversation.\r\n- Talk naturally with spoken replies. Interrupt speech without ending the conversation.\r\n- Access Compass tools available to your account, including web search, knowledge bases, Microsoft 365, and document generation.\r\n\r\n### Desktop Assistance\r\n- Share your screen when needed so Nova can understand what you are working on.\r\n- Use mouse, keyboard, and window actions to work with desktop applications.\r\n- Open applications, websites, and local documents. Read and write supported local files within configured allowed folders.\r\n- Use clipboard tools and run local commands with explicit approval.\r\n\r\n### Permissions and Activity\r\n- Deny actions, allow them once, or remember supported permissions. Review and revoke saved choices in Settings.\r\n- Allow routine computer actions for one task, while retaining separate confirmation for sensitive operations.\r\n- Follow tool activity and stop running work. Stopping does not undo completed actions.\r\n\r\n## 🔄 Updates\r\n- Check for updates at startup or from Settings, review release notes, and choose when to download and install.\r\n- Installation is blocked while tasks or voice conversations are active.\r\n\r\n## 🖥️ Compatibility and Setup\r\n- Windows x64. macOS is not included in this release.\r\n- Requires a Compass API key and an internet connection; available models and tools depend on your account.\r\n- The installer bundles the computer-control runtime; no developer tools are required.\r\n\r\n🛸 Co-authored with [Nova](https://www.compassap.ai/nova)",
+  "releaseNotesUrl": "https://github.com/Compass-Agentic-Platform/nova-echo/releases/tag/v0.1.0",
   "mandatory": false,
   "prerelease": false,
-  "platforms": {}
+  "platforms": {
+    "win32-x64": {
+      "url": "https://github.com/Compass-Agentic-Platform/nova-echo/releases/download/v0.1.0/Nova.Echo_0.1.0_x64-setup.exe",
+      "sha256": "cab8ec9eb16f4b5d8ac4fa7199c83029f456514ccd5ca51e784772094a4fa54f",
+      "size": 30203696,
+      "filename": "Nova.Echo_0.1.0_x64-setup.exe"
+    }
+  }
 }
