@@ -6,6 +6,12 @@
   "mandatory": false,
   "prerelease": false,
   "platforms": {
+    "darwin-arm64": {
+      "url": "https://github.com/Compass-Agentic-Platform/nova-echo/releases/download/v0.1.0/Nova-Echo-0.1.0-mac-arm64.zip",
+      "sha256": "8f4e23bb1e93279afcccef720d5e5b0df2fa2d7d69bd51105c0f5baa11428f71",
+      "size": 50988975,
+      "filename": "Nova-Echo-0.1.0-mac-arm64.zip"
+    },
     "win32-x64": {
       "url": "https://github.com/Compass-Agentic-Platform/nova-echo/releases/download/v0.1.0/Nova.Echo_0.1.0_x64-setup.exe",
       "sha256": "cab8ec9eb16f4b5d8ac4fa7199c83029f456514ccd5ca51e784772094a4fa54f",
