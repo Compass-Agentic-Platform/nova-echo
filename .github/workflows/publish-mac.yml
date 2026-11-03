@@ -405,6 +405,34 @@ jobs:
           spctl --assess --type execute --verbose=2 "$APP_BUNDLE"
           spctl --assess --type open --context context:primary-signature --verbose=2 "$DMG_FILE"
 
+      # ── 9b. Install from the DMG like a user and run the sidecar's helper check ─
+      # /Applications is root:admin 0775 on every Mac; the computer service must
+      # accept it. Screenshots need user-granted permissions, so they stay manual.
+      - name: Smoke test /Applications install
+        shell: bash
+        run: |
+          set -euo pipefail
+          DMG_FILE="$SOURCE_DIR/src-tauri/target/$TARGET/release/bundle/dmg/Nova-Echo-mac-$ARCH.dmg"
+          MOUNT="$(mktemp -d)"
+          hdiutil attach "$DMG_FILE" -nobrowse -readonly -mountpoint "$MOUNT"
+          APP_NAME="$(basename "$(find "$MOUNT" -maxdepth 1 -name '*.app' -print -quit)")"
+          INSTALLED="/Applications/$APP_NAME"
+          rm -rf "$INSTALLED"
+          ditto "$MOUNT/$APP_NAME" "$INSTALLED"
+          hdiutil detach "$MOUNT"
+          trap 'rm -rf "$INSTALLED"' EXIT
+          ls -ld /Applications
+          R="$INSTALLED/Contents/Resources/resources/computer-macos"
+          cat > "$RUNNER_TEMP/smoke.mjs" <<'EOF'
+          import {createHash} from 'node:crypto';import {readFileSync} from 'node:fs';import {pathToFileURL} from 'node:url';
+          const [dist,helper]=process.argv.slice(2);
+          const {verifyPrivateMacOSHelper}=await import(pathToFileURL(dist+'/macos-private-launcher.js').href);
+          const hash=createHash('sha256').update(readFileSync(helper+'/helper-manifest.json')).digest('hex');
+          console.log('Helper check passed:',await verifyPrivateMacOSHelper(helper,hash));
+          EOF
+          "$R/runtime/node" "$RUNNER_TEMP/smoke.mjs" "$R/dist" "$R/helper" \
+            || { echo "::error::Computer service rejects the app installed in /Applications"; exit 1; }
+
       # ── 10. Stage cleanly-named release artifacts ──────────────────────────
       - name: Prepare release artifacts
         id: prepare
