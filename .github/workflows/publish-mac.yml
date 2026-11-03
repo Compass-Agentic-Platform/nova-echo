@@ -30,10 +30,12 @@
 #
 #   * The computer-control bundle (src-tauri/resources/computer-macos) is
 #     pinned by manifest.json, whose SHA-256 is compiled into the app and whose
-#     file hashes are checked at runtime. Its Mach-O files (runtime/node and
-#     helper/desktop-helper) are therefore NEVER re-signed here: they must
-#     already carry a Developer ID signature with hardened runtime and a secure
-#     timestamp (official Node.js builds do; the private helper build must).
+#     file hashes are checked at runtime. runtime/node is the official Node.js
+#     build (already Developer ID signed) and is never re-signed. The committed
+#     helper/desktop-helper is verified unsigned against manifest.json, then
+#     signed here (hardened runtime + timestamp) BEFORE the app is built; its
+#     new hash is written into helper/helper-manifest.json and manifest.json so
+#     build.rs compiles the signed hashes into the app.
 #
 #   * runtime/node is gitignored (>100 MB). It is restored from the official
 #     Node.js darwin-arm64 archive and must match the hash in manifest.json.
@@ -63,7 +65,7 @@ on:
       node_version:
         description: 'Node.js version bundled as computer-macos/runtime/node (must match manifest.json)'
         required: false
-        default: '24.20.0'
+        default: '24.14.1'
         type: string
 
 env:
@@ -152,7 +154,7 @@ jobs:
         run: |
           set -euo pipefail
           NODE_VERSION="${{ github.event.inputs.node_version }}"
-          NODE_VERSION="${NODE_VERSION:-24.20.0}"
+          NODE_VERSION="${NODE_VERSION:-24.14.1}"
           test -f "$COMPUTER_DIR/manifest.json" || { echo "::error::$COMPUTER_DIR/manifest.json is missing; run scripts/prepare-macos.sh in the source repo"; exit 1; }
 
           WORK="$(mktemp -d)"
@@ -182,24 +184,6 @@ jobs:
               raise SystemExit(f"computer-macos does not match manifest. mismatched={bad} unlisted={extra}")
           print(f"computer-macos matches manifest ({len(files)} files)")
           PY
-
-      - name: Check bundled native code is notarisation-ready
-        shell: bash
-        run: |
-          set -euo pipefail
-          # These binaries are hash-pinned and cannot be re-signed, so they must
-          # already be Developer ID signed with hardened runtime + timestamp.
-          FAILED=0
-          while IFS= read -r -d '' f; do
-            file -b "$f" | grep -q 'Mach-O' || continue
-            INFO="$(codesign -dvv "$f" 2>&1)" || { echo "::error::Unsigned binary: $f"; FAILED=1; continue; }
-            echo "$INFO" | grep -q 'Authority=Developer ID Application' || { echo "::error::Not Developer ID signed: $f"; FAILED=1; }
-            echo "$INFO" | grep -q 'flags=.*runtime' || { echo "::error::Hardened runtime missing: $f"; FAILED=1; }
-            echo "$INFO" | grep -q '^Timestamp=' || { echo "::error::Secure timestamp missing: $f"; FAILED=1; }
-            codesign --verify --strict "$f" || { echo "::error::Signature invalid: $f"; FAILED=1; }
-          done < <(find "$COMPUTER_DIR" -type f -print0)
-          [ "$FAILED" -eq 0 ] || exit 1
-          echo "All bundled Mach-O binaries are Developer ID signed."
 
       # ── 5. Prepare the macOS icon ──────────────────────────────────────────
       - name: Prepare macOS icon
@@ -264,6 +248,56 @@ jobs:
           echo "identity=$IDENTITY" >> "$GITHUB_OUTPUT"
           echo "keychain_path=$KEYCHAIN_PATH" >> "$GITHUB_OUTPUT"
           rm -f "$CERT_FILE"
+
+      # ── 7b. Sign the pinned helper and re-pin its hashes before building ───
+      - name: Sign desktop helper and update manifests
+        shell: bash
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ steps.import-cert.outputs.identity }}
+        run: |
+          set -euo pipefail
+          HELPER="$COMPUTER_DIR/helper/desktop-helper"
+          test -f "$HELPER" || { echo "::error::$HELPER is missing"; exit 1; }
+          codesign --force --options runtime --timestamp \
+            --sign "$APPLE_SIGNING_IDENTITY" "$HELPER"
+          codesign --verify --strict --verbose=2 "$HELPER"
+
+          # Only the helper and its manifest change; every other entry stays
+          # pinned to the committed bytes verified in step 4.
+          python3 - "$COMPUTER_DIR" <<'PY'
+          import hashlib, json, sys
+          from pathlib import Path
+          root = Path(sys.argv[1])
+          sha = lambda p: hashlib.sha256((root / p).read_bytes()).hexdigest()
+          hm_path = root / "helper/helper-manifest.json"
+          hm = json.loads(hm_path.read_text())
+          hm["sha256"] = sha("helper/desktop-helper")
+          hm_path.write_text(json.dumps(hm, separators=(",", ":")))
+          m_path = root / "manifest.json"
+          m = json.loads(m_path.read_text())
+          for p in ("helper/desktop-helper", "helper/helper-manifest.json"):
+              if p not in m["files"]:
+                  raise SystemExit(f"{p} is not listed in manifest.json")
+              m["files"][p] = sha(p)
+          m_path.write_text(json.dumps(m, indent=2) + "\n")
+          print(f"Re-pinned signed helper: {hm['sha256']}")
+          PY
+
+      - name: Check bundled native code is notarisation-ready
+        shell: bash
+        run: |
+          set -euo pipefail
+          FAILED=0
+          while IFS= read -r -d '' f; do
+            file -b "$f" | grep -q 'Mach-O' || continue
+            INFO="$(codesign -dvv "$f" 2>&1)" || { echo "::error::Unsigned binary: $f"; FAILED=1; continue; }
+            echo "$INFO" | grep -q 'Authority=Developer ID Application' || { echo "::error::Not Developer ID signed: $f"; FAILED=1; }
+            echo "$INFO" | grep -q 'flags=.*runtime' || { echo "::error::Hardened runtime missing: $f"; FAILED=1; }
+            echo "$INFO" | grep -q '^Timestamp=' || { echo "::error::Secure timestamp missing: $f"; FAILED=1; }
+            codesign --verify --strict "$f" || { echo "::error::Signature invalid: $f"; FAILED=1; }
+          done < <(find "$COMPUTER_DIR" -type f -print0)
+          [ "$FAILED" -eq 0 ] || exit 1
+          echo "All bundled Mach-O binaries are Developer ID signed."
 
       # ── 8. Build and sign with Tauri (notarisation deferred to step 9) ─────
       - name: Build, sign and bundle (Tauri)
